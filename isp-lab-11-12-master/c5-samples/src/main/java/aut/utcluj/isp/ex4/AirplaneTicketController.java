@@ -1,8 +1,10 @@
 package aut.utcluj.isp.ex4;
 
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author stefan
@@ -13,6 +15,11 @@ public class AirplaneTicketController {
      */
     public static final int DEFAULT_NUMBER_OF_TICKETS = 10;
     private List<AirplaneTicket> tickets;
+
+    public AirplaneTicketController() {
+        tickets = new ArrayList<>();
+        generateTickets();
+    }
 
     /**
      * Generate default tickets
@@ -52,7 +59,10 @@ public class AirplaneTicketController {
      * @apiNote: this method should throw {@link NoTicketAvailableException} exception if ticket not found
      */
     public AirplaneTicket getTicketDetails(final String ticketId) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return tickets.stream()
+                .filter(ticket -> ticket.getId().equals(ticketId))
+                .findFirst()
+                .orElseThrow(NoTicketAvailableException::new);
     }
 
     /**
@@ -67,7 +77,21 @@ public class AirplaneTicketController {
      * {@link NoTicketAvailableException} - if destination exists but no ticket with NEW status available
      */
     public void buyTicket(final String destination, final String customerId) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        List<AirplaneTicket> availableTickets = tickets.stream()
+                .filter(ticket -> ticket.getDestination().equals(destination) && ticket.getStatus() == TicketStatus.NEW)
+                .collect(Collectors.toList());
+
+        if (availableTickets.isEmpty()) {
+            if (tickets.stream().noneMatch(ticket -> ticket.getDestination().equals(destination))) {
+                throw new NoDestinationAvailableException();
+            } else {
+                throw new NoTicketAvailableException();
+            }
+        }
+
+        AirplaneTicket ticket = availableTickets.get(0);
+        ticket.setCustomerId(customerId);
+        ticket.setStatus(TicketStatus.ACTIVE);
     }
 
     /**
@@ -81,7 +105,11 @@ public class AirplaneTicketController {
      * {@link TicketNotAssignedException} - if ticket is not assigned to any user
      */
     public void cancelTicket(final String ticketId) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        AirplaneTicket ticket = getTicketDetails(ticketId);
+        if (ticket.getCustomerId() == null) {
+            throw new TicketNotAssignedException();
+        }
+        ticket.setStatus(TicketStatus.CANCELED);
     }
 
     /**
@@ -95,7 +123,11 @@ public class AirplaneTicketController {
      * {@link TicketNotAssignedException} - if ticket is not assigned to any user
      */
     public void changeTicketCustomerId(final String ticketId, final String customerId) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        AirplaneTicket ticket = getTicketDetails(ticketId);
+        if (ticket.getCustomerId() == null) {
+            throw new TicketNotAssignedException();
+        }
+        ticket.setCustomerId(customerId);
     }
 
     /**
@@ -106,7 +138,9 @@ public class AirplaneTicketController {
      * @return
      */
     public List<AirplaneTicket> filterTicketsByStatus(final TicketStatus status) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return tickets.stream()
+                .filter(ticket -> ticket.getStatus() == status)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -116,6 +150,8 @@ public class AirplaneTicketController {
      * @apiNote: only tickets with available name should be returned
      */
     public Map<String, List<AirplaneTicket>> groupTicketsByCustomerId() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return tickets.stream()
+                .filter(ticket -> ticket.getCustomerId() != null)
+                .collect(Collectors.groupingBy(AirplaneTicket::getCustomerId));
     }
 }
